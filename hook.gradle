@@ -5,7 +5,56 @@ buildscript {
         jcenter()
     }
     dependencies {
+		classpath("org.ajoberstar:gradle-git:0.8.0")
     }
+}
+
+
+import org.ajoberstar.grgit.*
+
+ext.repo = Grgit.open(project.file('.'))
+
+version = qualifyVersionIfNecessary(version)
+
+// manipulate version-property
+// it is totally scriptable
+def qualifyVersionIfNecessary(version) {
+	
+	File buildVersionFile = file("buildversion")
+	if(buildVersionFile.exists()){
+		logger.quiet("Use Build-Version-File : " + buildVersionFile.text)
+		return buildVersionFile.text
+	}
+	
+//	String branch = repo.getBranch().getCurrent().name
+//	//String branch = System.env.GIT_BRANCH
+//	logger.quiet("Branch : " + branch)
+//	logger.quiet("BRANCH by GIT_PLUGIN: " + System.env.GIT_BRANCH)
+	logger.quiet("version in 'gradle.properties' " + version)
+	if(System.env.BUILD_NUMBER || System.env.GIT_BRANCH) {
+		String branch = System.env.GIT_BRANCH
+		logger.quiet("BRANCH by GIT_PLUGIN: " + System.env.GIT_BRANCH)
+		branch = branch.replace('origin/', '')
+		String featureVersion = branch.replace('/', '-')
+		String v = version.replace('-SNAPSHOT', "-" + featureVersion + "-" + System.env.BUILD_NUMBER)
+		logger.quiet("version used for this build : " + v)
+		buildVersionFile.text = v
+		return v
+	}else {
+		String branch = repo.getBranch().getCurrent().name
+		logger.quiet("Branch : " + branch)
+		if(branch.contains("feature/")) {
+			String featureVersion = branch.replace('origin/', '')
+			featureVersion = featureVersion.replace('/', '-')
+			featureVersion = featureVersion.toUpperCase()
+			String v = version.replace('-SNAPSHOT', "-" + featureVersion)
+			logger.quiet("version used for this build : " + v)
+			buildVersionFile.text = v
+			return v
+		}
+	}
+	logger.quiet("version used for this build : " + version)
+	return version
 }
 
 task hookOne(group: "Hook", description: "These Hooks allows us to execute plugins and more without touching the project itself."){
