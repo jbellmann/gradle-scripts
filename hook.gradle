@@ -7,7 +7,3 @@ buildscript {
     dependencies {
     }
 }
-
-task hookOne(group: "Hook", description: "These Hooks allows us to execute plugins and more without touching the project itself."){
-    // nothing here
-}
